@@ -12,34 +12,28 @@ namespace AppView.Controllers
 {
     public class GiaoDichTaiChinhsController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly HttpClient _httpClient;
 
-        public GiaoDichTaiChinhsController(AppDbContext context)
+        public GiaoDichTaiChinhsController(HttpClient httpClient)
         {
-            _context = context;
+            _httpClient = httpClient;
+            _httpClient.BaseAddress = new Uri("https://localhost:7282/api/"); 
         }
 
-        // GET: GiaoDichTaiChinhs
         public async Task<IActionResult> Index()
         {
-            return View(await _context.GiaoDichTaiChinhs.ToListAsync());
+            var giaoDichTaiChinhList = await _httpClient.GetFromJsonAsync<List<GiaoDichTaiChinh>>("GiaoDichTaiChinh");
+            return View(giaoDichTaiChinhList);
         }
 
         // GET: GiaoDichTaiChinhs/Details/5
-        public async Task<IActionResult> Details(Guid? id)
+        public async Task<IActionResult> Details(Guid id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var giaoDichTaiChinh = await _context.GiaoDichTaiChinhs
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var giaoDichTaiChinh = await _httpClient.GetFromJsonAsync<GiaoDichTaiChinh>($"GiaoDichTaiChinh/{id}");
             if (giaoDichTaiChinh == null)
             {
                 return NotFound();
             }
-
             return View(giaoDichTaiChinh);
         }
 
@@ -50,31 +44,27 @@ namespace AppView.Controllers
         }
 
         // POST: GiaoDichTaiChinhs/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,NguoiThucHien,LoaiGiaoDich,DiaChiVi,SoLuong,NgayGiaoDich,PhiGiaoDich,TrangThai")] GiaoDichTaiChinh giaoDichTaiChinh)
+        public async Task<IActionResult> Create(GiaoDichTaiChinh giaoDichTaiChinh)
         {
             if (ModelState.IsValid)
             {
                 giaoDichTaiChinh.Id = Guid.NewGuid();
-                _context.Add(giaoDichTaiChinh);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var response = await _httpClient.PostAsJsonAsync("GiaoDichTaiChinh", giaoDichTaiChinh);
+                if (response.IsSuccessStatusCode)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", "Không thể tạo giao dịch.");
             }
             return View(giaoDichTaiChinh);
         }
 
         // GET: GiaoDichTaiChinhs/Edit/5
-        public async Task<IActionResult> Edit(Guid? id)
+        public async Task<IActionResult> Edit(Guid id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var giaoDichTaiChinh = await _context.GiaoDichTaiChinhs.FindAsync(id);
+            var giaoDichTaiChinh = await _httpClient.GetFromJsonAsync<GiaoDichTaiChinh>($"GiaoDichTaiChinh/{id}");
             if (giaoDichTaiChinh == null)
             {
                 return NotFound();
@@ -83,11 +73,9 @@ namespace AppView.Controllers
         }
 
         // POST: GiaoDichTaiChinhs/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,NguoiThucHien,LoaiGiaoDich,DiaChiVi,SoLuong,NgayGiaoDich,PhiGiaoDich,TrangThai")] GiaoDichTaiChinh giaoDichTaiChinh)
+        public async Task<IActionResult> Edit(Guid id, GiaoDichTaiChinh giaoDichTaiChinh)
         {
             if (id != giaoDichTaiChinh.Id)
             {
@@ -96,37 +84,20 @@ namespace AppView.Controllers
 
             if (ModelState.IsValid)
             {
-                try
+                var response = await _httpClient.PutAsJsonAsync($"GiaoDichTaiChinh/{id}", giaoDichTaiChinh);
+                if (response.IsSuccessStatusCode)
                 {
-                    _context.Update(giaoDichTaiChinh);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!GiaoDichTaiChinhExists(giaoDichTaiChinh.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", "Không thể cập nhật giao dịch.");
             }
             return View(giaoDichTaiChinh);
         }
 
         // GET: GiaoDichTaiChinhs/Delete/5
-        public async Task<IActionResult> Delete(Guid? id)
+        public async Task<IActionResult> Delete(Guid id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var giaoDichTaiChinh = await _context.GiaoDichTaiChinhs
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var giaoDichTaiChinh = await _httpClient.GetFromJsonAsync<GiaoDichTaiChinh>($"GiaoDichTaiChinh/{id}");
             if (giaoDichTaiChinh == null)
             {
                 return NotFound();
@@ -140,19 +111,14 @@ namespace AppView.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            var giaoDichTaiChinh = await _context.GiaoDichTaiChinhs.FindAsync(id);
-            if (giaoDichTaiChinh != null)
+            var response = await _httpClient.DeleteAsync($"GiaoDichTaiChinh/{id}");
+            if (response.IsSuccessStatusCode)
             {
-                _context.GiaoDichTaiChinhs.Remove(giaoDichTaiChinh);
+                return RedirectToAction(nameof(Index));
             }
-
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        private bool GiaoDichTaiChinhExists(Guid id)
-        {
-            return _context.GiaoDichTaiChinhs.Any(e => e.Id == id);
+            ModelState.AddModelError("", "Không thể xóa giao dịch.");
+            return View();
         }
     }
 }
+
